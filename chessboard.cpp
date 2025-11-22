@@ -92,16 +92,21 @@ void ChessBoard::drawBoard(QPainter& painter)
     font.setPointSize(10);
     painter.setFont(font);
     
-    // Files (a-h)
+    QFontMetrics fm(font);
+    int labelOffset = qMax(5, sz / 20);
+    
+    // Files (a-h) - drawn at bottom of board
     for (int col = 0; col < 8; ++col) {
         QString label = QString(QChar('a' + col));
-        painter.drawText(col * sz + sz - 15, 8 * sz - 5, label);
+        int textWidth = fm.horizontalAdvance(label);
+        painter.drawText(col * sz + sz - textWidth - labelOffset, 
+                        8 * sz - labelOffset, label);
     }
     
-    // Ranks (1-8)
+    // Ranks (1-8) - drawn at left of board
     for (int row = 0; row < 8; ++row) {
         QString label = QString::number(8 - row);
-        painter.drawText(5, row * sz + 15, label);
+        painter.drawText(labelOffset, row * sz + fm.height(), label);
     }
 }
 
@@ -118,18 +123,30 @@ void ChessBoard::drawPieces(QPainter& painter)
             if (piece != ' ') {
                 QString symbol = getPieceSymbol(piece);
                 
-                // Set color based on piece
-                if (isWhitePiece(piece)) {
-                    painter.setPen(QPen(Qt::white, 2));
-                    painter.setBrush(Qt::white);
-                } else {
-                    painter.setPen(QPen(Qt::black, 2));
-                    painter.setBrush(Qt::black);
-                }
-                
-                // Draw piece centered in square
+                // Draw piece with stroke for better visibility
                 QRect rect(col * sz, row * sz, sz, sz);
-                painter.drawText(rect, Qt::AlignCenter, symbol);
+                
+                if (isWhitePiece(piece)) {
+                    // White pieces: white fill with dark outline
+                    QPainterPath path;
+                    path.addText(rect.center(), font, symbol);
+                    QRectF bounds = path.boundingRect();
+                    path.translate(rect.center() - bounds.center());
+                    
+                    painter.setPen(QPen(Qt::black, 3));
+                    painter.setBrush(Qt::white);
+                    painter.drawPath(path);
+                } else {
+                    // Black pieces: black fill with light outline for better visibility
+                    QPainterPath path;
+                    path.addText(rect.center(), font, symbol);
+                    QRectF bounds = path.boundingRect();
+                    path.translate(rect.center() - bounds.center());
+                    
+                    painter.setPen(QPen(QColor(200, 200, 200), 2));
+                    painter.setBrush(Qt::black);
+                    painter.drawPath(path);
+                }
             }
         }
     }
