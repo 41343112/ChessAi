@@ -10,10 +10,12 @@ CONFIG += c++17
 
 SOURCES += \
     main.cpp \
-    chessai.cpp
+    chessai.cpp \
+    chessboard.cpp
 
 HEADERS += \
-    chessai.h
+    chessai.h \
+    chessboard.h
 
 FORMS += \
     chessai.ui
