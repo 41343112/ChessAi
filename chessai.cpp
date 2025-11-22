@@ -4,6 +4,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QApplication>
+#include <QRegularExpression>
 
 ChessAi::ChessAi(QWidget *parent)
     : QMainWindow(parent)
@@ -38,13 +39,34 @@ QString ChessAi::getEnginePath()
     QString appDir = QApplication::applicationDirPath();
     QString enginePath;
     
+    // List of possible engine names to check
+    QStringList possibleEngines;
+    
     #ifdef Q_OS_WIN
-        enginePath = appDir + "/engine/stockfish-windows-x86-64-avx2.exe";
+        possibleEngines << "engine/stockfish-windows-x86-64-avx2.exe"
+                       << "engine/stockfish.exe"
+                       << "engine/stockfish-windows.exe";
     #elif defined(Q_OS_MAC)
-        enginePath = appDir + "/engine/stockfish-macos";
+        possibleEngines << "engine/stockfish-macos"
+                       << "engine/stockfish";
     #else
-        enginePath = appDir + "/engine/stockfish-linux";
+        possibleEngines << "engine/stockfish-linux"
+                       << "engine/stockfish";
     #endif
+    
+    // Check each possible path
+    for (const QString& engineName : possibleEngines) {
+        QString path = appDir + "/" + engineName;
+        if (QFile::exists(path)) {
+            enginePath = path;
+            break;
+        }
+    }
+    
+    if (enginePath.isEmpty() && !possibleEngines.isEmpty()) {
+        // Default to first option if none found
+        enginePath = appDir + "/" + possibleEngines.first();
+    }
     
     qDebug() << "Engine path:" << enginePath;
     return enginePath;
@@ -109,8 +131,14 @@ void ChessAi::readEngineOutput()
             QStringList parts = line.split(" ");
             if (parts.size() >= 2) {
                 QString move = parts[1];
-                ui->textBrowser->append("Engine suggests move: " + move);
-                ui->lineEditMove->setText(move);
+                ui->textBrowser->append("==> Engine's move: " + move);
+                
+                // Add engine's move to position tracking
+                if (currentPosition == "startpos") {
+                    currentPosition = "startpos moves " + move;
+                } else {
+                    currentPosition += " " + move;
+                }
             }
         }
     }
@@ -165,6 +193,15 @@ void ChessAi::makeMove()
         return;
     }
     
+    // Validate UCI move format
+    if (!isValidUCIMove(userMove)) {
+        QMessageBox::warning(this, "Invalid Move", 
+            "Invalid UCI move format. Examples:\n"
+            "- Normal move: e2e4\n"
+            "- Pawn promotion: e7e8q (q for queen, r for rook, b for bishop, n for knight)");
+        return;
+    }
+    
     // Append the user's move to the position
     if (currentPosition == "startpos") {
         currentPosition = "startpos moves " + userMove;
@@ -179,4 +216,15 @@ void ChessAi::makeMove()
     sendCommandToEngine("go movetime 1000");  // Think for 1 second
     
     ui->lineEditMove->clear();
+}
+
+bool ChessAi::isValidUCIMove(const QString& move)
+{
+    // UCI move format: [file][rank][file][rank][promotion]
+    // file: a-h, rank: 1-8
+    // promotion (optional): q, r, b, n (queen, rook, bishop, knight)
+    // Examples: e2e4, e7e8q, a7a8r
+    
+    QRegularExpression uciPattern("^[a-h][1-8][a-h][1-8][qrbn]?$");
+    return uciPattern.match(move).hasMatch();
 }

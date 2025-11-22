@@ -28,6 +28,7 @@ private:
     void initializeEngine();
     void sendCommandToEngine(const QString& command);
     QString getEnginePath();
+    bool isValidUCIMove(const QString& move);
 
     Ui::ChessAi *ui;
     QProcess* engineProcess;
