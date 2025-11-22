@@ -32,7 +32,7 @@ private:
     void sendCommandToEngine(const QString& command);
     QString getEnginePath();
     bool isValidUCIMove(const QString& move);
-    void updateBoardFromMoveHistory();
+    void processUserMove(const QString& uciMove);
 
     Ui::ChessAi *ui;
     QProcess* engineProcess;

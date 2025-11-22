@@ -219,27 +219,7 @@ void ChessAi::makeMove()
         return;
     }
     
-    // Update the chess board with user's move
-    if (chessBoard) {
-        if (!chessBoard->makeMove(userMove)) {
-            QMessageBox::warning(this, "Invalid Move", "Could not make the move on the board.");
-            return;
-        }
-    }
-    
-    // Append the user's move to the position
-    if (currentPosition == "startpos") {
-        currentPosition = "startpos moves " + userMove;
-    } else {
-        currentPosition += " " + userMove;
-    }
-    
-    ui->textBrowser->append("Your move: " + userMove);
-    
-    // Send position to engine and ask for best move
-    sendCommandToEngine("position " + currentPosition);
-    sendCommandToEngine("go movetime 1000");  // Think for 1 second
-    
+    processUserMove(userMove);
     ui->lineEditMove->clear();
 }
 
@@ -253,10 +233,17 @@ void ChessAi::onBoardMoveSelected(const QString& uciMove)
     // Validate the move
     if (!isValidUCIMove(uciMove)) {
         QMessageBox::warning(this, "Invalid Move", "The selected move is not valid.");
-        chessBoard->clearSelection();
+        if (chessBoard) {
+            chessBoard->clearSelection();
+        }
         return;
     }
     
+    processUserMove(uciMove);
+}
+
+void ChessAi::processUserMove(const QString& uciMove)
+{
     // Update the chess board with user's move
     if (chessBoard) {
         if (!chessBoard->makeMove(uciMove)) {

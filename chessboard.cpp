@@ -2,6 +2,7 @@
 #include <QPainter>
 #include <QMouseEvent>
 #include <QDebug>
+#include <cctype>
 
 ChessBoard::ChessBoard(QWidget *parent)
     : QWidget(parent)
