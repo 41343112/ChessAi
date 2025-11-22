@@ -3,7 +3,7 @@
 #include <QMouseEvent>
 #include <QDebug>
 #include <cctype>
-
+#include<QPainterPath>
 ChessBoard::ChessBoard(QWidget *parent)
     : QWidget(parent)
     , pieceSelected(false)
