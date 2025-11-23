@@ -1,5 +1,6 @@
 #include "chessai.h"
 #include "ui_chessai.h"
+#include "chessboard.h"
 #include <QMessageBox>
 #include <QDebug>
 #include <QDir>
@@ -12,12 +13,18 @@ ChessAi::ChessAi(QWidget *parent)
     , engineProcess(nullptr)
     , currentPosition("startpos")
     , isEngineReady(false)
+    , chessBoard(nullptr)
 {
     ui->setupUi(this);
+    
+    // Create and setup chess board
+    chessBoard = new ChessBoard(this);
+    ui->boardLayout->addWidget(chessBoard);
     
     // Connect UI signals to slots
     connect(ui->btnNewGame, &QPushButton::clicked, this, &ChessAi::startNewGame);
     connect(ui->btnMakeMove, &QPushButton::clicked, this, &ChessAi::makeMove);
+    connect(chessBoard, &ChessBoard::moveSelected, this, &ChessAi::onBoardMoveSelected);
     
     // Initialize the chess engine
     initializeEngine();
@@ -133,6 +140,11 @@ void ChessAi::readEngineOutput()
                 QString move = parts[1];
                 ui->textBrowser->append("==> Engine's move: " + move);
                 
+                // Update the chess board with engine's move
+                if (chessBoard) {
+                    chessBoard->makeMove(move);
+                }
+                
                 // Add engine's move to position tracking
                 if (currentPosition == "startpos") {
                     currentPosition = "startpos moves " + move;
@@ -174,6 +186,11 @@ void ChessAi::startNewGame()
     ui->textBrowser->append("\n=== New Game Started ===");
     ui->lineEditMove->clear();
     
+    // Reset the chess board
+    if (chessBoard) {
+        chessBoard->resetBoard();
+    }
+    
     // Reset the engine to new game state
     sendCommandToEngine("ucinewgame");
     sendCommandToEngine("isready");
@@ -202,20 +219,51 @@ void ChessAi::makeMove()
         return;
     }
     
-    // Append the user's move to the position
-    if (currentPosition == "startpos") {
-        currentPosition = "startpos moves " + userMove;
-    } else {
-        currentPosition += " " + userMove;
+    processUserMove(userMove);
+    ui->lineEditMove->clear();
+}
+
+void ChessAi::onBoardMoveSelected(const QString& uciMove)
+{
+    if (!isEngineReady) {
+        QMessageBox::warning(this, "Not Ready", "Chess engine is not ready yet!");
+        return;
     }
     
-    ui->textBrowser->append("Your move: " + userMove);
+    // Validate the move
+    if (!isValidUCIMove(uciMove)) {
+        QMessageBox::warning(this, "Invalid Move", "The selected move is not valid.");
+        if (chessBoard) {
+            chessBoard->clearSelection();
+        }
+        return;
+    }
+    
+    processUserMove(uciMove);
+}
+
+void ChessAi::processUserMove(const QString& uciMove)
+{
+    // Update the chess board with user's move
+    if (chessBoard) {
+        if (!chessBoard->makeMove(uciMove)) {
+            QMessageBox::warning(this, "Invalid Move", "Could not make the move on the board.");
+            return;
+        }
+    }
+    
+    // Append the user's move to the position
+    if (currentPosition == "startpos") {
+        currentPosition = "startpos moves " + uciMove;
+    } else {
+        currentPosition += " " + uciMove;
+    }
+    
+    ui->textBrowser->append("Your move: " + uciMove);
     
     // Send position to engine and ask for best move
     sendCommandToEngine("position " + currentPosition);
     sendCommandToEngine("go movetime 1000");  // Think for 1 second
-    
-    ui->lineEditMove->clear();
 }
 
 bool ChessAi::isValidUCIMove(const QString& move)

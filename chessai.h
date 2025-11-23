@@ -10,6 +10,8 @@ class ChessAi;
 }
 QT_END_NAMESPACE
 
+class ChessBoard;
+
 class ChessAi : public QMainWindow
 {
     Q_OBJECT
@@ -23,16 +25,19 @@ private slots:
     void makeMove();
     void readEngineOutput();
     void engineError(QProcess::ProcessError error);
+    void onBoardMoveSelected(const QString& uciMove);
 
 private:
     void initializeEngine();
     void sendCommandToEngine(const QString& command);
     QString getEnginePath();
     bool isValidUCIMove(const QString& move);
+    void processUserMove(const QString& uciMove);
 
     Ui::ChessAi *ui;
     QProcess* engineProcess;
     QString currentPosition;
     bool isEngineReady;
+    ChessBoard* chessBoard;
 };
 #endif // CHESSAI_H
